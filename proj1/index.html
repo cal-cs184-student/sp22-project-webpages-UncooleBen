@@ -1,96 +1,179 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
 <head>
-<style>
-  body {
-    padding: 100px;
-    width: 1000px;
-    margin: auto;
-    text-align: left;
-    font-weight: 300;
-    font-family: 'Open Sans', sans-serif;
-    color: #121212;
-  }
-  h1, h2, h3, h4 {
-    font-family: 'Source Sans Pro', sans-serif;
-  }
-</style>
-<title>CS 184 Rasterizer</title>
-<meta http-equiv="content-type" content="text/html; charset=utf-8" />
-<link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+  <style>
+    body {
+      padding: 100px;
+      width: 1000px;
+      margin: auto;
+      text-align: left;
+      font-weight: 300;
+      font-family: 'Open Sans', sans-serif;
+      color: #121212;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+  </style>
+  <title>CS 184 Rasterizer</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
 </head>
 
 
 <body>
 
-<h1 align="middle">CS 184: Computer Graphics and Imaging, Spring 2018</h1>
-<h1 align="middle">Project 1: Rasterizer</h1>
-<h2 align="middle">YOUR NAME, CS184-??</h2>
+  <h1 align="middle">CS 284A: Computer Graphics and Imaging, Spring 2022</h1>
+  <h1 align="middle">Project 1: Rasterizer</h1>
+  <h2 align="middle">Juntao Peng, Yang Huang, CS184-sigsegv</h2>
 
-<br><br>
+  <br><br>
 
-<div>
+  <div>
 
-<h2 align="middle">Overview</h2>
-<p>Give a high-level overview of what you implemented in this project. Think about what you've built as a whole. Share your thoughts on what interesting things you've learned from completing the project.</p>
+    <h2 align="middle">Overview</h2>
+    <p>In this project we've built a rasterization pipeline for simple triangle. On the basis of triangle, we can render
+      a variety of other shapes defined in our SVG input.
+      In task 1, we built a simple rasterizer for triangle.
+      In task 2, we added supersampling, an anti-aliasing technique for rasterization.
+      In task 3, we performed layered transform on a robot SVG.
+      In task 4, we implemented a barycentric interpolation algorithm which can be used in either color or later uv
+      coordinates.
+      In task 5, we implemented pixel sampling on textures, including nearest and bilinear sampling.
+      In task 6, we implemented level sampling on mipmap.
+    </p>
+    <h2 align="middle">Section I: Rasterization</h2>
 
-<h2 align="middle">Section I: Rasterization</h2>
+    <h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
 
-<h3 align="middle">Part 1: Rasterizing single-color triangles</h3>
+    <!--
+Walk through how you rasterize triangles in your own words.
+Explain how your algorithm is no worse than one that checks each sample within the bounding box of the triangle.
+Show a png screenshot of basic/test4.svg with the default viewing parameters and with the pixel inspector centered on an interesting part of the scene.
+Extra credit: Explain any special optimizations you did beyond simple bounding box triangle rasterization, 
+with a timing comparison table (we suggest using the c++ clock() function around the svg.draw() command in DrawRend::redraw() 
+to compare millisecond timings with your various optimizations off and on).
+-->
 
-<p>Here is an example 2x2 gridlike structure using an HTML table. Each <b>tr</b> is a row and each <b>td</b> is a column in that row. You might find this useful for framing and showing your result images in an organized fashion.</p>
+    <p>
+      We use min and max function to compute the left, right, up, and down bounding lines of given triangle.
+      This saves us from iterating every pixel in the screen space. Therefore, our algorithm is no worse than one that
+      checks each sample within the bounding box of the triangle.
+    </p>
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/task1.png" align="middle" width="400px" />
+            <figcaption align="middle">test4.svg</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
 
-<div align="middle">
-  <table style="width=100%">
-    <tr>
-      <td>
-        <img src="images/image1.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-      <td>
-        <img src="images/image2.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-    </tr>
-    <br>
-    <tr>
-      <td>
-        <img src="images/image3.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-      <td>
-        <img src="images/image4.png" align="middle" width="400px"/>
-        <figcaption align="middle">Caption goes here.</figcaption>
-      </td>
-    </tr>
-  </table>
-</div>
+    <p>
+      As you can see, one interesting point of the vanilla triangle rasterization algorithm is that there is severe
+      aliasing on certain tip of our triangle.
+    </p>
 
+    <h3 align="middle">Part 2: Antialiasing triangles</h3>
 
-<h3 align="middle">Part 2: Antialiasing triangles</h3>
+    <!--
+Walk through your supersampling algorithm and data structures. 
+Why is supersampling useful? 
+What modifications did you make to the rasterization pipeline in the process? 
+Explain how you used supersampling to antialias your triangles.
+Show png screenshots of basic/test4.svg with the default viewing parameters and sample rates 1, 4, and 16 to compare them side-by-side. 
+Position the pixel inspector over an area that showcases the effect dramatically; for example, a very skinny triangle corner. 
+Explain why these results are observed.
+Extra credit: If you implemented alternative antialiasing methods, describe them and include comparison pictures demonstrating the difference between your method and grid-based supersampling.
+-->
 
+    <h3 align="middle">Part 3: Transforms</h3>
 
+    <!--
+  Create an updated version of svg/transforms/robot.svg with cubeman doing something more interesting, 
+  like waving or running. Feel free to change his colors or proportions to suit your creativity. 
+  Save your svg file as my_robot.svg in your docs/ directory and show a png screenshot of your rendered drawing in your write-up. 
+  Explain what you were trying to do with cubeman in words.
+-->
 
-<h3 align="middle">Part 3: Transforms</h3>
+    <h2 align="middle">Section II: Sampling</h2>
 
+    <h3 align="middle">Part 4: Barycentric coordinates</h3>
 
+    <!--
+Explain barycentric coordinates in your own words and use an image to aid you in your explanation. 
+One idea is to use a svg file that plots a single triangle with one red, one green, and one blue vertex, 
+which should produce a smoothly blended color triangle.
+Show a png screenshot of svg/basic/test7.svg with default viewing parameters and sample rate 1.
+If you make any additional images with color gradients, include them.
+-->
 
-<h2 align="middle">Section II: Sampling</h2>
+    <h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
 
-<h3 align="middle">Part 4: Barycentric coordinates</h3>
+    <!--
+Explain pixel sampling in your own words and describe how you implemented it to perform texture mapping. 
+Briefly discuss the two different pixel sampling methods, nearest and bilinear.
+Check out the svg files in the svg/texmap/ directory. 
+Use the pixel inspector to find a good example of where bilinear sampling clearly defeats nearest sampling. 
+Show and compare four png screenshots using 
+nearest sampling at 1 sample per pixel, nearest sampling at 16 samples per pixel, bilinear sampling at 1 sample per pixel, and bilinear sampling at 16 samples per pixel.
+Comment on the relative differences. Discuss when there will be a large difference between the two methods and why.
+-->
 
+    <h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
 
-<h3 align="middle">Part 5: "Pixel sampling" for texture mapping</h3>
+    <!--
+Explain level sampling in your own words and describe how you implemented it for texture mapping.
+You can now adjust your sampling technique by selecting pixel sampling, level sampling, or the number of samples per pixel. 
+Describe the tradeoffs between speed, memory usage, and antialiasing power between the three various techniques.
+Using a png file you find yourself, show us four versions of the image, 
+using the combinations of L_ZERO and P_NEAREST, L_ZERO and P_LINEAR, L_NEAREST and P_NEAREST, as well as L_NEAREST and P_LINEAR.
+To use your own png, make a copy of one of the existing svg files in svg/texmap/ (or create your own modelled after one of the provided svg files). 
+Then, near the top of the file, change the texture filename to point to your own png. 
+From there, you can run ./draw and pass in that svg file to render it and then save a screenshot of your results.
+Note: Choose a png that showcases the different sampling effects well. 
+You may also want to zoom in/out, use the pixel inspector, etc. to demonstrate the differences.
+Extra credit: If you implemented any extra filtering methods, describe them and show comparisons between your results with the other above methods.
+-->
 
+    <h2 align="middle">Section III: Art Competition</h2>
+    <p>If you are not participating in the optional art competition, don't worry about this section!</p>
 
-<h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
+    <h3 align="middle">Part 7: Draw something interesting!</h3>
 
-
-
-<h2 align="middle">Section III: Art Competition</h2>
-<p>If you are not participating in the optional art competition, don't worry about this section!</p>
-
-<h3 align="middle">Part 7: Draw something interesting!</h3>
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/image1.png" align="middle" width="400px" />
+            <figcaption align="middle">Caption goes here.</figcaption>
+          </td>
+          <td>
+            <img src="images/image2.png" align="middle" width="400px" />
+            <figcaption align="middle">Caption goes here.</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/image3.png" align="middle" width="400px" />
+            <figcaption align="middle">Caption goes here.</figcaption>
+          </td>
+          <td>
+            <img src="images/image4.png" align="middle" width="400px" />
+            <figcaption align="middle">Caption goes here.</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
 
 </body>
+
 </html>
