@@ -49,7 +49,8 @@
     </p>
 
     <p>
-      Click <a href="https://cal-cs184-student.github.io/sp22-project-webpages-UncooleBen/proj1/index.html">here</a> for GitHub pages.
+      Click <a href="https://cal-cs184-student.github.io/sp22-project-webpages-UncooleBen/proj1/index.html">here</a> for
+      GitHub pages.
     </p>
     <h2 align="middle">Section I: Rasterization</h2>
 
@@ -269,6 +270,26 @@ Extra credit: If you implemented any extra filtering methods, describe them and 
       actual sampling.
     </p>
 
+    <p>
+      Supersampling is the theoretically best anti-aliasing algorithm because it samples the signal in a higher
+      frequency,
+      then perform an average. However, supersampling is slow and memory consuming because it has to compute and store
+      the
+      extra subpixels before averaging them out. On the contrary, pixel sampling is memory efficient and less intensive
+      in
+      computation because it blurs the output using existing pixels instead of enormous subpixels. However, pixel
+      sampling
+      cannot distinguish the texture difference that our human eyes preceive between near and far objects. This is where
+      level
+      sampling is useful. Level sampling with mipmap uses only 33% more memory but can achieve different blurring
+      levels. Thus,
+      it has better anti-aliasing effect than ordinary pixel sampling. The combination of bilinear pixel sampling and
+      linear
+      level sampling is called trilinear sampling. Trilinear sampling can achieve almost comparable anti-aliasing result
+      as
+      supersampling but using much less computation power and memory.
+    </p>
+
     <div align="middle">
       <table style="width=100%">
         <tr>
@@ -281,7 +302,7 @@ Extra credit: If you implemented any extra filtering methods, describe them and 
     </div>
 
     <div align="middle" style="margin-left: -25%">
-      <table style="width=100%" >
+      <table style="width=100%">
         <tr>
           <td>
             <img src="images/lzeropnearest.png" align="middle" width="700px" />
@@ -317,7 +338,21 @@ Extra credit: If you implemented any extra filtering methods, describe them and 
     </div>
 
     <p>
-      Placeholder.
+      When using zero level sampling, there is still some moire patterns in these two figures. The only difference lies
+      in the edge of the black squares. When using bilinear pixel sampling, the edge is smoother.
+    </p>
+
+    <p>
+      When using nearest level sampling, we observe that there is much less moire pattern in these two figures. However,
+      there is still a black X-shape pattern in the center of both figures. Using bilinear pixel sampling with nearest level
+      sampling, can reduce the moire pattern (from left and right comparison).
+    </p>
+
+    <p>
+      When using linear level sampling, we obeserve that there is even less moire patten in both figures. Moreover, the X-shape
+      pattern is gone when using linear level sampling. The right figure is trilinear sampling, it looks like an almost ideal 
+      image in the real world. The only problem is that to remove the X-shape black pattern in the center, we have to make the 
+      center somehow blurrier. This is a tradeoff between image resolution and anti-aliasing.
     </p>
 
     <h2 align="middle">Section III: Art Competition</h2>
