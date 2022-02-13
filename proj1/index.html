@@ -20,7 +20,7 @@
       font-family: 'Source Sans Pro', sans-serif;
     }
   </style>
-  <title>CS 184 Rasterizer</title>
+  <title>CS 284A Rasterizer</title>
   <meta http-equiv="content-type" content="text/html; charset=utf-8" />
   <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
 </head>
@@ -126,6 +126,108 @@ Show and compare four png screenshots using
 nearest sampling at 1 sample per pixel, nearest sampling at 16 samples per pixel, bilinear sampling at 1 sample per pixel, and bilinear sampling at 16 samples per pixel.
 Comment on the relative differences. Discuss when there will be a large difference between the two methods and why.
 -->
+    <p>
+      Pixel sampling is finding the color of a pixel by figuring out a mapping from xy coordinates in pixel space
+      to uv coordinates in texel space. However, since texel space is discrete, the barycentric uv coordinates computed
+      from triangle will most likely not
+      located on a texel. Therefore, we need pixel sampling method such as nearest and bilinear sampling.
+    </p>
+
+    <p>
+      In nearest pixel sampling, we compare the distances between the sampled uv coordinates and its four nearest texel
+      neighbors.
+      And then choose the nearest neighbor's color as the sampled pixel's color. In our implementation, this can be
+      simplified as
+      rounding the uv coordinates into the nearest integer, avoiding computing four distances.
+    </p>
+
+    <p>
+      In bilinear sampling, instead of discretely use the nearest texel color as the pixel's color. We perform linear
+      interpolations
+      among the four nearest texel points. This yields a more continuous color than nearest pixeling. In our
+      implementation,
+      the linear
+      interpolation can be computed by a lerp macro. We first lerp the vertical two pairs of neighbors. Then lerp the
+      horizontal previous
+      lerp results.
+    </p>
+
+    <p>
+      Below are two examples showing that bilinear sampling beats nearest sampling.
+    </p>
+
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/nearest.png" align="middle" width="400px" />
+            <figcaption align="middle">Jaggies in nearest sampling.</figcaption>
+          </td>
+          <td>
+            <img src="images/bilinear.png" align="middle" width="400px" />
+            <figcaption align="middle">Continuity in bilinear sampling.</figcaption>
+          </td>
+        </tr>
+        <br>
+      </table>
+    </div>
+
+    <p>
+      Below are four examples of nearest and bilinear sampling with 1 and 16 samples per pixel.
+    </p>
+
+    <div align="middle">
+      <table style="width=100%">
+        <tr>
+          <td>
+            <img src="images/nearest-1.png" align="middle" width="400px" />
+            <figcaption align="middle">Nearest pixel sampling with 1 sample per pixel</figcaption>
+          </td>
+          <td>
+            <img src="images/nearest-16.png" align="middle" width="400px" />
+            <figcaption align="middle">Nearest pixel sampling with 16 samples per pixel</figcaption>
+          </td>
+        </tr>
+        <br>
+        <tr>
+          <td>
+            <img src="images/bilinear-1.png" align="middle" width="400px" />
+            <figcaption align="middle">Bilinear sampling with 1 sample per pixel</figcaption>
+          </td>
+          <td>
+            <img src="images/bilinear-16.png" align="middle" width="400px" />
+            <figcaption align="middle">Bilinear sampling with 16 samples per pixel</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <p>
+      Under low super sampling rate (e.g. 1 sample per pixel), nearest pixel sampling is worse than bilinear sampling
+      since one will observe extensive jaggies in nearest pixel sampling images. The reason behind this is nearest
+      sampling
+      loses informations by choosing only the nearest texel color.
+    </p>
+
+    <p>
+      However, when super sampling rate is as high as 16, the difference between nearest and bilinear sampling is
+      cancelled
+      out by the extensive high underlying resolution of super sampling. But it is meaningful to admit that
+      supersampling is
+      extremely expensive given that we have to use 16 times more memory and computation power to do this. In
+      comparison, bilinear
+      sampling, though has a few jaggie parts, requires far less memory and computation power.
+    </p>
+
+    <p>
+      Despite the little difference between nearest and bilinear sampling under supersampling with 16 subpixels, we can
+      still observe
+      some minor changes between this two images. It is like the "blur then sample" and "sample then blur" discussion in
+      the supersampling
+      lecture. Nearest pixel sampling with high supersampling is like the "sample then blur" case, whereas bilinear
+      sampling with supersampling
+      is like the "blur then sample" case. And one would almost always prefer the latter one.
+    </p>
 
     <h3 align="middle">Part 6: "Level sampling" with mipmaps for texture mapping</h3>
 
@@ -142,37 +244,82 @@ Note: Choose a png that showcases the different sampling effects well.
 You may also want to zoom in/out, use the pixel inspector, etc. to demonstrate the differences.
 Extra credit: If you implemented any extra filtering methods, describe them and show comparisons between your results with the other above methods.
 -->
+    <p>
+      Level sampling with mipmap is using different texture resolution to color the different scale of pixels. When two
+      neighbor screen pixels are
+      near in the actual texture space, then we should use low level (high resolution) textures. When two neighbor
+      screen pixels are far from each
+      other in texture space, then we should use high level (low resolution) textures. This idea comes from the Nyquist
+      sampling rate, when the signal
+      frequency is higher, as this is often the case of nearer objects in perspective view, we should sample more
+      frequently, and vice versa.
+    </p>
 
-    <h2 align="middle">Section III: Art Competition</h2>
-    <p>If you are not participating in the optional art competition, don't worry about this section!</p>
-
-    <h3 align="middle">Part 7: Draw something interesting!</h3>
+    <p>
+      In our implementation, we use the uv, dy_duv and dx_duv passed in the SampleParams parameter to first compute the
+      correct
+      float level of the mipmap.
+      Then, according to the level sampling parameter, choose the corresponding zero, nearest, or linear interpolation
+      method to compute the discrete mipmap level.
+      Finally, as in task 5, we call sample_nearest or sample_bilinear method with the chosen mipmap to perform the
+      actual sampling.
+    </p>
 
     <div align="middle">
       <table style="width=100%">
         <tr>
           <td>
-            <img src="images/image1.png" align="middle" width="400px" />
-            <figcaption align="middle">Caption goes here.</figcaption>
+            <img src="images/checkerboard.png" align="middle" width="400" />
+            <figcaption align="middle">Black-white checkerboard texture</figcaption>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div align="middle" style="margin-left: -25%">
+      <table style="width=100%" >
+        <tr>
+          <td>
+            <img src="images/lzeropnearest.png" align="middle" width="700px" />
+            <figcaption align="middle">L_ZERO P_NEAREST</figcaption>
           </td>
           <td>
-            <img src="images/image2.png" align="middle" width="400px" />
-            <figcaption align="middle">Caption goes here.</figcaption>
+            <img src="images/lzeroplinear.png" align="middle" width="700px" />
+            <figcaption align="middle">L_ZERO P_LINEAR</figcaption>
           </td>
         </tr>
         <br>
         <tr>
           <td>
-            <img src="images/image3.png" align="middle" width="400px" />
-            <figcaption align="middle">Caption goes here.</figcaption>
+            <img src="images/lnearestpnearest.png" align="middle" width="700px" />
+            <figcaption align="middle">L_NEAREST P_NEAREST</figcaption>
           </td>
           <td>
-            <img src="images/image4.png" align="middle" width="400px" />
-            <figcaption align="middle">Caption goes here.</figcaption>
+            <img src="images/lnearestplinear.png" align="middle" width="700px" />
+            <figcaption align="middle">L_NEAREST P_LINEAR</figcaption>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <img src="images/llinearpnearest.png" align="middle" width="700px" />
+            <figcaption align="middle">L_LINEAR P_NEAREST</figcaption>
+          </td>
+          <td>
+            <img src="images/llinearplinear.png" align="middle" width="700px" />
+            <figcaption align="middle">L_LINEAR P_LINEAR</figcaption>
           </td>
         </tr>
       </table>
     </div>
+
+    <p>
+      Placeholder.
+    </p>
+
+    <h2 align="middle">Section III: Art Competition</h2>
+    <p>If you are not participating in the optional art competition, don't worry about this section!</p>
+
+    <h3 align="middle">Part 7: Draw something interesting!</h3>
 
 </body>
 
