@@ -1,7 +1,164 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 3-2 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+    <style>
+        div.padded {
+            padding-top: 0px;
+            padding-right: 100px;
+            padding-bottom: 0.25in;
+            padding-left: 100px;
+        }
+    </style>
+    <title>Yang Huang, Juntao Peng | CS 284A</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <link rel="stylesheet" type="text/css" href="style.css" media="screen" />
+</head>
+
+<body>
+    <br />
+    <h1 align="middle">Assignment 3: PathTracer</h1>
+    <h2 align="middle">Yang Huang, Juntao Peng</h2>
+
+    <div class="padded">
+        <p>In assignment 3-2 we first implemented glass and mirror material in part 1. Then we chose part 3 as out second part where
+            we implemented environment light using uniform sphere sampling and inversion-based importance sampling.</p>
+        <h2 align="middle">Part 1: Mirror and Glass Materials</h2>
+        <p>Show a sequence of six images of scene CBspheres.dae rendered with max_ray_depth set to 0, 1, 2, 3, 4, 5, and 100. 
+            The other settings should be at least 64 samples per pixel and 4 samples per light.
+            Point out the new multibounce effects that appear in each image.
+            Explain how these bounce numbers relate to the particular effects that appear..</p>
+        <p> Point out the new multibounce effects that appear in each image.
+            When m = 0, we can only see the cornell box since no bounce so we can only see light from area light.<br>
+            When m = 1, there is one bounce from the light reflecting off the spheres and towards the camera.<br>
+            When m = 2, we see a light that bounces off the wall into the left sphere that is then bounced into the camera.
+            We can also notice a bright ceiling in image but a dark ceiling in the reflection of left sphere.
+            Also, we start to see some reflected light in the right sphere but the shadow is still pure black. <br>
+            When m = 3, we start to see the ceiling in the left sphere due to light bouncing off the floor and wall back to the ceiling and off the left sphere into the camera.
+            However, the reflection of right sphere in left sphere is still black.<br>
+            When m = 4, we can see a realistic reflection of right sphere in left sphere and also notice a small transparent shadow in right wall.
+            From m = 5 to 100, we can see a more and more realistic reflection of mirror and glass material. We can gradually see the reflection of right sphere in left sphere,
+            see a transparent shadow on right wall, see a smooth shadow caused by refraction in right sphere. <br> 
+        </p>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td align="middle">
+                            <img src="images/spheres_s_256_m_0.png" width="480px" />
+                            <figcaption align="middle">max_ray_depth = 0, 256 samples per pixel, 4 samples per light</figcaption>
+                        <td align="middle">
+                            <img src="images/spheres_s_256_m_1.png" width="480px" />
+                            <figcaption align="middle">max_ray_depth = 0, 256 samples per pixel, 4 samples per light</figcaption>
+                    </tr>
+                </table>
+            </div>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td align="middle">
+                            <img src="images/spheres_s_256_m_2.png" width="480px" />
+                            <figcaption align="middle">max_ray_depth = 2, 256 samples per pixel, 4 samples per light</figcaption>
+                        <td align="middle">
+                            <img src="images/spheres_s_256_m_3.png" width="480px" />
+                            <figcaption align="middle">max_ray_depth = 3, 256 samples per pixel, 4 samples per light</figcaption>
+                    </tr>
+                </table>
+            </div>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td align="middle">
+                            <img src="images/spheres_s_256_m_4.png" width="480px" />
+                            <figcaption align="middle">max_ray_depth = 4, 256 samples per pixel, 4 samples per light</figcaption>
+                        <td align="middle">
+                            <img src="images/spheres_s_256_m_5.png" width="480px" />
+                            <figcaption align="middle">max_ray_depth = 5, 256 samples per pixel, 4 samples per light</figcaption>
+                    </tr>
+                </table>
+            </div>
+            <div align="center">
+                <table style="width=100%">
+                    <tr>
+                        <td align="middle">
+                            <img src="images/spheres_s_256_m_100.png" width="480px" />
+                            <figcaption align="middle">max_ray_depth = 100, 256 samples per pixel, 4 samples per light</figcaption>
+                    </tr>
+                </table>
+            </div>
+
+        <h2 align="middle">Part 3: Environment Light</h2>
+        <p>In part 3 we first write a <code>sample_dir</code> function with which we can trace along the direction of
+            a ray until we find the meet point on the environment map. This is achieved by converting global direction
+            to theta-phi representation and then convert the angle to environment map using a lerp operation.</p>
+        <p>The second task of part 3 is uniform sphere sampling. We write <code>sample_L</code> function with which we
+            can sample a uniformly random direction from a hitpoint and find the corresponding xy value on the
+            environment map.</p>
+        <p>The third task of part 3 is importance sampling using inversion method. We first update the <code>init</code>
+            function by storing
+            <code>pdf_envmap</code> with the environment map's pixel value and then normalize it. Then we compute the
+            marginal cumulative density function in <code>marginal_y</code>, which is a row-wise summation of
+            <code>pdf_envmap</code> along the width axis. The last step in the <code>init</code> function is to compute
+            <code>cond_y</code> by dividing values in <code>pdf_envmap</code> by the neighbor difference of
+            <code>marginal_y</code> (this will give us the true probability of P(y)).
+        </p>
+        <p>After finishing <code>init</code> function, we need to update <code>sample_L</code> with importance sampling.
+            <br>
+            1. We first perform a 2D uniform sampling from [0, 1). <br>
+            2. Then use the value of <code>sample[1]</code> to
+            inversely importance sample from the marginal distribution of y. This is achieved by using
+            <code>std::upper_bound</code> to compute the index of the next larger cumulative probability density. <br>
+            3. After getting a fixed y-value, we repeat the inversion sampling on the conditional distribution of x
+            given y
+            to get x-value. <br>
+            4. Once we get the xy combination, we lerp it on the environment map, and convert it to the
+            world direction. <br>
+            5. Finally we set the value of pdf pointer to P(y) * P(x|y) and then multiply it by
+            <code>w * h / (2 * PI * PI * sin(theta))</code>.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/part3-1.png" width="480px" />
+                        <figcaption align="middle">Importance Density of ennis.exr</figcaption>
+                </tr>
+            </table>
+        </div>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/part3-2.png" width="480px" />
+                        <figcaption align="middle">Bunny using uniform sphere sampling</figcaption>
+                    <td align="middle">
+                        <img src="images/part3-3.png" width="480px" />
+                        <figcaption align="middle">Bunny using importance sampling</figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>
+            When rendering our bunny the noise in uniform sphere sampling is higher than the one in importance sampling.
+            We
+            can see black dots on the surface of the left bunny.
+        </p>
+        <div align="center">
+            <table style="width=100%">
+                <tr>
+                    <td align="middle">
+                        <img src="images/part3-4.png" width="480px" />
+                        <figcaption align="middle">Wall-e using uniform sphere sampling</figcaption>
+                    <td align="middle">
+                        <img src="images/part3-5.png" width="480px" />
+                        <figcaption align="middle">Wall-e using importance sampling</figcaption>
+                </tr>
+            </table>
+        </div>
+        <p>
+            When rendering our Wall-e the noise level between these two methods are closer than that of the bunny's. This is probabily because
+            there is more polygons in the dragon mesh so that the ray samples are more likely to hit the model and thus
+            gives back a valid radiance from the environment light source.
+        </p>
+    </div>
+</body>
+
 </html>
