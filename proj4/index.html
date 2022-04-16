@@ -1,7 +1,321 @@
-<html>
-	<head>
-	</head>
-	<body>
-		Project 4 here
-	</body>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+  <style>
+    body {
+      padding: 100px;
+      width: 1000px;
+      margin: auto;
+      text-align: left;
+      font-weight: 300;
+      font-family: 'Open Sans', sans-serif;
+      color: #121212;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+  </style>
+  <title>CS 284A Juntao Peng, Yang Huang</title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+  <link href="https://fonts.googleapis.com/css?family=Open+Sans|Source+Sans+Pro" rel="stylesheet">
+</head>
+
+
+<body>
+
+  <h1 align="middle">CS 284A: Computer Graphics and Imaging, Spring 2022</h1>
+  <h1 align="middle">Project 4: Cloth Simulator</h1>
+  <h2 align="middle">Juntao Peng, Yang Huang, Team Name: szechuan-sauce</h2>
+
+  <br><br>
+
+  <div>
+
+    <h2 align="middle">Overview</h2>
+    <p>We implemented cloth simulation based on particle point mass model. In part 1, we write basic point masses and
+      springs. In part 2, we solve the particle simulation problem using numerical integration methods. In part 3, we
+      implement collision algorithms with other rigid objects. In part 4, we implement collision algorithm with other
+      particle objects (the cloth itself). In part 5, we implement a set of shaders to decorate our cloth.</p>
+    <p>
+      This write-up can be accessed <a href="https://cal-cs184-student.github.io/sp22-project-webpages-UncooleBen/proj4/index.html">here</a>.
+    </p>
+
+    <h2 align="middle">Part I: Masses and springs</h2>
+
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part1-pinned2-1.png" width="480px" />
+            <figcaption align="middle">Structure of point masses</figcaption>
+          <td align="middle">
+            <img src="images/part1-pinned2-2.png" width="480px" />
+            <figcaption align="middle">Structure of springs</figcaption>
+        </tr>
+      </table>
+    </div>
+    <p>Point masses are organized in grids. The grids are defined by different springs that connect point masses.</p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part1-pinned2-noshearing.png" width="480px" />
+            <figcaption align="middle">No shearing constraints</figcaption>
+          <td align="middle">
+            <img src="images/part1-pinned2-onlyshearing.png" width="480px" />
+            <figcaption align="middle">Only shearing constraints</figcaption>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part1-pinned2-allconstraints.png" width="480px" />
+            <figcaption align="middle">All constraints</figcaption>
+        </tr>
+      </table>
+    </div>
+
+    <p>Shearing constraints are in the form of square diagonals. Without them we only have aligned square grids. With
+      only them we have rotated square grids.</p>
+
+    <h2 align="middle">Part II: Simulation via numerical integration</h2>
+
+    <p>
+      Modifying the spring constant ks will give us different resting position of cloth. Higher ks will make the cloth
+      harder and tenser, and thus the resing position is higher. Lower ks will loosen the cloth, and thus the resting
+      position is lower.
+    </p>
+
+    <p>
+      Modifying density will change the mass of the cloth. Higher density will stretch the spring more, and thus gives
+      us a lower resting position. Lower density will pose less force on every spring, and thus gives us a higher
+      resting position. Extremely low density will make the cloth vibrate horizontally (spring forces are dominant
+      instead of gravity)
+    </p>
+
+    <p>
+      Modifying damping factor will change the energetic behavior of the cloth. Higher damping factor will make the
+      energy disappear quicker, and thus cause less vibration during the falling of the cloth. Lower damping factor will
+      conserve the energy, and thus make the cloth vibrate more during the falling process.
+    </p>
+
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part2-pinned4-highks.png" width="480px" />
+            <figcaption align="middle">High spring constant ks, tenser</figcaption>
+          <td align="middle">
+            <img src="images/part2-pinned4-lowdamping.png" width="480px" />
+            <figcaption align="middle">Low damping, vibration</figcaption>
+        </tr>
+      </table>
+    </div>
+
+    <div align="center">
+      <img src="images/part2-pinned4-rest.png" width="960px" />
+      <figcaption align="middle">Resting state of pinned4</figcaption>
+    </div>
+
+    <h2 align="middle">Part III: Handling collisions with other objects</h2>
+
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part3-sphere-500.png" width="480px" />
+            <figcaption align="middle">ks = 500, like silk</figcaption>
+          <td align="middle">
+            <img src="images/part3-sphere-5000.png" width="480px" />
+            <figcaption align="middle">ks = 5000, like cotton</figcaption>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part3-sphere-50000.png" width="480px" />
+            <figcaption align="middle">ks = 50000, like a rubber pad</figcaption>
+          <td align="middle">
+            <img src="images/part3-plane-rest.png" width="480px" />
+            <figcaption align="middle">Leather resting on a plane</figcaption>
+        </tr>
+      </table>
+    </div>
+
+    <p>
+      We find three metaphors to different value of spring constants: silk, cotton, and rubber. The simulation result is
+      exactly the
+      effect of putting cloth with above three different material on a rigid sphere.
+    </p>
+
+    <h2 align="middle">Part IV: Handling self-collisions</h2>
+
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part4-1.png" width="480px" />
+            <figcaption align="middle">Start</figcaption>
+          <td align="middle">
+            <img src="images/part4-2.png" width="480px" />
+            <figcaption align="middle">Falling</figcaption>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part4-3.png" width="480px" />
+            <figcaption align="middle">Resting position</figcaption>
+          <td align="middle">
+            <img src="images/part4-passing.png" width="480px" />
+            <figcaption align="middle">Other side of plane, weird</figcaption>
+        </tr>
+      </table>
+    </div>
+
+    <p>
+      The cloth has a clear trend of folding against itself during the process of falling. However, we've noticed a
+      weird behavior on the other side of the plane: the cloth is passing through the plane!
+    </p>
+
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/part4-ks50.png" width="480px" />
+            <figcaption align="middle">ks = 50, like silk</figcaption>
+          <td align="middle">
+            <img src="images/part4-ks50000.png" width="480px" />
+            <figcaption align="middle">ks = 50000, like a thick rug</figcaption>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part4-den-10.png" width="480px" />
+            <figcaption align="middle">Density = -10 Starts to shrink by spring force</figcaption>
+          <td align="middle">
+            <img src="images/part4-den-10-shrink.png" width="480px" />
+            <figcaption align="middle">Density = -10 Resting position minimum shrinkage</figcaption>
+        </tr>
+        <tr>
+          <td align="middle">
+            <img src="images/part4-den100.png" width="480px" />
+            <figcaption align="middle">Density = 100, fold by itself</figcaption>
+        </tr>
+      </table>
+    </div>
+
+    <p>
+      Funny effect of negative density: the cloth will shrink towards its center :)
+    </p>
+
+    <h2 align="middle">Part V: Shaders</h2>
+    <p>What is a shader program? </p>
+    <p>Shaders are isolated programs that run for each specific section of the graphics pipeline, executing sections of
+      the graphics pipeline and transforming inputs ot outputs.</p>
+    <p>How do vertex and fragment shaders work together to create lighting and material effects?</p>
+    <p>Vertex shaders generally apply transforms to vertices, modifying their position and normal vectors, writing the
+      final position of the vertex to gl_Position. The output of vertex shader will be the input of fragment shader.
+      Fragment shader take in geometric attributes of the rasterized fragment calculated by the vertex shader to compute
+      and write a color into out_color. After shader program, the output will be passed to framebuffer operations.
+    </p>
+    <p>
+      Explain the Blinn-Phong shading model in your own words.
+      Blinn-Phong shading model is a more advanced model of specular illumination. It imitates how light is reflected by
+      objects from source to our eyes.
+      Our fragment shader of Blinn-Phong model accounts for ambient light, diffuse light and specular reflection.
+    </p>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/phong ambient.png" width="480px" />
+            <figcaption align="middle">Phong model only with ambient component</figcaption>
+          <td align="middle">
+            <img src="images/phong diffuse.png" width="480px" />
+            <figcaption align="middle">Phong model only with diffuse component</figcaption>
+        </tr>
+      </table>
+    </div>
+    <div align="center">
+      <table style="width=100%">
+        <tr>
+          <td align="middle">
+            <img src="images/phong spec.png" width="480px" />
+            <figcaption align="middle">Phong model only with specular component</figcaption>
+          <td align="middle">
+            <img src="images/phong model.png" width="480px" />
+            <figcaption align="middle">The entire Blinn-Phong model</figcaption>
+        </tr>
+      </table>
+    </div>
+  </div>
+  <p>Our own texture mapping</p>
+  <div align="center">
+    <table style="width=100%">
+      <tr>
+        <td align="middle">
+          <img src="images/texture custom.png" width="960px" />
+          <figcaption align="middle">Phong model only with specular component</figcaption>
+      </tr>
+    </table>
+  </div>
+  <p>Comparisons between bump mapping and displacement mapping.</p>
+  <div align="center">
+    <table style="width=100%">
+      <tr>
+        <td align="middle">
+          <img src="images/original bump.png" width="480px" />
+          <figcaption align="middle">A screenshot of bump mapping on the cloth and on the sphere</figcaption>
+        <td align="middle">
+          <img src="images/original displace.png" width="480px" />
+          <figcaption align="middle">A screenshot of displacement mapping on the sphere </figcaption>
+      </tr>
+    </table>
+  </div>
+  <p>Compare the two approaches and resulting renders in your own words.</p>
+  <p>With displacement and bump mapping, we can encode a height map in a texture to be processed and applied by a shader program. 
+    In bump mapping, we build upon normal map but add more height information. Through this, the fragment shader gives the illusion of detail.
+    In displacement mapping, we modify the position of vertices to reflect the height in addition to modifying the normals to be consistent with the new geometry.
+    Thus, we can see the details of height.
+  </p>
+  <p>Through below images, we can see the variations of suface in displacement mapping and the surface of Bump mapping is obviously smoother.</p>
+  <div align="center">
+    <table style="width=100%">
+      <tr>
+        <td align="middle">
+          <img src="images/bump 16.png" width="480px" />
+          <figcaption align="middle">Bump mapping when coarseness is 16</figcaption>
+        <td align="middle">
+          <img src="images/displace 16.png" width="480px" />
+          <figcaption align="middle">Displacement mapping when coarseness is 16</figcaption>
+      </tr>
+    </table>
+  </div>
+  <div align="center">
+    <table style="width=100%">
+      <tr>
+        <td align="middle">
+          <img src="images/bump 128.png" width="480px" />
+          <figcaption align="middle">Bump mapping when coarseness is 128</figcaption>
+        <td align="middle">
+          <img src="images/displace 128.png" width="480px" />
+          <figcaption align="middle">Displacement mapping when coarseness is 128</figcaption>
+      </tr>
+    </table>
+  </div>
+  <p>Show a screenshot of your mirror shader on the cloth and on the sphere.</p>
+  <div align="center">
+    <table style="width=100%">
+      <tr>
+        <td align="middle">
+          <img src="images/mirror 1.png" width="480px" />
+          <figcaption align="middle">Mirror shader screenshot No.1</figcaption>
+        <td align="middle">
+          <img src="images/mirror 2.png" width="480px" />
+          <figcaption align="middle">Mirror shader screenshot No.2</figcaption>
+      </tr>
+    </table>
+  </div>
+
+</body>
+
 </html>
